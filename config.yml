@@ -1,0 +1,13 @@
+server:
+  isProd: false
+  port: 8080
+  pg:
+      user: "postgres"
+      password: "postgres"
+      host: "localhost"
+      port: 5432
+      database: "simple_wallet"
+      sslmode: "disable"
+  jwt:
+      secret: "n0515v1Wi0wJrNF3XscQlPVyXbYUeAdu/DJWaex7XKnBY7PN70/orU1VJPdDRJ9jVlpe2vDt7omMnNTsNSurkw=="
+      expires_in: 24h

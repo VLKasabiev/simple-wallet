@@ -1,4 +1,10 @@
 
+.env
+.env.local
+
+*.log
+.cache/
+
 /bin/
 /dist/
 *.exe
