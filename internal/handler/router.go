@@ -7,7 +7,7 @@ import (
 )
 
 
-func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, jwtCfg *config.JWTConfig) {
+func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, transactionH *TransactionHandler, jwtCfg *config.JWTConfig) {
     api := e.Group("")
 
     api.POST("/users", userH.Create)
@@ -21,11 +21,10 @@ func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, jw
     // PROTECTED ENDPOINTS (Wallets + Transactions)
     protected.POST("/users/:id/wallets", walletH.Create)
     protected.GET("/users/:id/wallets", walletH.GetUserWallets)
-
-    // TODO Implement the logic for the endpoints listed below
-
-    // protected.GET("/wallets/:id/balance", walletH.GetBalance)
-    // protected.POST("/wallets/:id/deposit", walletH.Deposit)
-    // protected.POST("/wallets/:id/withdraw", walletH.Withdraw)
-    // protected.GET("/wallets/:id/transactions", walletH.GetTransactions)
+    protected.GET("/wallets/:id/balance", walletH.GetBalance)
+    protected.POST("/wallets/:id/deposit", walletH.Deposit)
+    protected.POST("/wallets/:id/withdraw", walletH.Withdraw)
+    //protected.POST("/wallets/:id/transfer", walletH.Transfer)
+    protected.GET("/wallets/:id/transactions", transactionH.GetTransactions)
+    
 }

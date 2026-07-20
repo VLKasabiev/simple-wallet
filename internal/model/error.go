@@ -12,6 +12,11 @@ var (
 	ErrUserNotFound = errors.New("User not found")
 	ErrInvalidPassword = errors.New("Invalid password")
 
-	// ErrWalletNotFound = errors.New("Wallet not found")
+
+
+	ErrWalletNotFound = errors.New("Wallet not found")
+	ErrNotWalletOwner = errors.New("you do not own this wallet")
 	// ErrTransNotFound = errors.New("Transaction not found")
+
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )
