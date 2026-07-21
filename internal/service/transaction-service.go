@@ -8,7 +8,7 @@ import (
 )
 
 type TransactionRepository interface {
-	GetTransactions(ctx context.Context, walletID int) ([]*model.Transaction, error)
+	GetTransactions(ctx context.Context, walletID int, filter model.TransactionFilter) ([]*model.Transaction, error)
 }
 
 type WalletProvider interface {
@@ -27,7 +27,7 @@ func NewTransactionService(repo TransactionRepository, walletProvider WalletProv
 	}
 }
 
-func (s *TransactionService) GetTransactions(ctx context.Context, userID, walletID int) ([]*model.Transaction, error) {
+func (s *TransactionService) GetTransactions(ctx context.Context, userID, walletID int, filter model.TransactionFilter) ([]*model.Transaction, error) {
 
     wallet, err := s.walletProvider.GetWalletByID(ctx, walletID)
     if err != nil {
@@ -38,7 +38,28 @@ func (s *TransactionService) GetTransactions(ctx context.Context, userID, wallet
         return nil, model.ErrNotWalletOwner
     }
 
-    transactions, err := s.repo.GetTransactions(ctx, walletID)
+
+	if filter.Type != "" {
+        if filter.Type != "withdraw" && filter.Type != "deposit" {
+            return nil, fmt.Errorf("invalid transaction type: %s", filter.Type)
+        }
+    }
+
+    if filter.Status != "" {
+        if filter.Status != "success" && filter.Status != "failed" {
+            return nil, fmt.Errorf("invalid transaction status: %s", filter.Status)
+        }
+    }
+
+    if filter.Sort == "" {
+        filter.Sort = "created_at_desc" 
+    } else {
+        if filter.Sort != "created_at_desc" && filter.Sort != "created_at_asc" {
+            return nil, fmt.Errorf("invalid sort parameter: %s", filter.Sort)
+        }
+    }
+
+    transactions, err := s.repo.GetTransactions(ctx, walletID, filter)
     if err != nil {
         return nil, fmt.Errorf("failed to fetch transactions from repository: %w", err)
     }

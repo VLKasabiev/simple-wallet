@@ -50,12 +50,14 @@ func main() {
 	transactionService := service.NewTransactionService(transactionRepo, walletRepo)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 
+	healthHandler := handler.NewHealthHandler(db.Ping)
+
 	e := echo.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	handler.RegisterRoutes(e, userHandler, walletHandler, transactionHandler, cfg.JWT)
+	handler.RegisterRoutes(e, userHandler, walletHandler, transactionHandler, healthHandler, cfg.JWT)
 
 	slog.Info("starting HTTP server", "port", cfg.GetWebPort())
 	if err := e.Start(":" + cfg.GetWebPort()); err != nil {

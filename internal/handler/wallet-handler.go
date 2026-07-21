@@ -25,13 +25,34 @@ func NewWalletHandler(ws *service.WalletService) *WalletHandler {
 
 
 func (h *WalletHandler) Create(c echo.Context) error {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || userID <= 0 {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid user id in url"})
+	}
+
+	ctx := c.Request().Context()
+	currentUserID, ok := ctx.Value("userID").(int)
+	if !ok || currentUserID <= 0 {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	if userID != currentUserID {
+		return c.JSON(http.StatusForbidden, echo.Map{"error": "you can not create wallets for other users"})
+	}
+
 	var req CreateWalletRequest
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid request body"})
 	}
 
-	wallet, err := h.walletService.CreateWallet(c.Request().Context(), req.UserID,  req.Currency)
+	if !req.Currency.IsValid() {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "unsupported currency, allowed values: RUB, USD, EUR",
+        })
+    }
+
+	wallet, err := h.walletService.CreateWallet(c.Request().Context(), userID,  req.Currency)
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
@@ -46,6 +67,16 @@ func (h *WalletHandler) GetUserWallets(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 	}
 
+	ctx := c.Request().Context()
+	currentUserID, ok := ctx.Value("userID").(int)
+	if !ok || currentUserID <= 0 {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	if userID != currentUserID {
+		return c.JSON(http.StatusForbidden, echo.Map{"error": "you can not get other user's wallets"})
+	}
+
 	wallets, err := h.walletService.GetWalletsByUserID(c.Request().Context(), userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to fetch wallets"})
@@ -53,6 +84,35 @@ func (h *WalletHandler) GetUserWallets(c echo.Context) error {
 	
 	return c.JSON(http.StatusOK, wallets)
 }
+
+func (h *WalletHandler) GetByID(c echo.Context) error {
+	walletID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || walletID <= 0 {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid wallet id"})
+	}
+
+	ctx := c.Request().Context()
+	userID, ok := ctx.Value("userID").(int)
+	if !ok || userID <= 0 {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	wallet, err := h.walletService.GetByID(ctx, walletID, userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, model.ErrWalletNotFound):
+			return c.JSON(http.StatusNotFound, echo.Map{"error": "wallet not found"})
+
+		case errors.Is(err, model.ErrNotWalletOwner):
+			return c.JSON(http.StatusForbidden, echo.Map{"error": "you don't have access to this wallet, because it's another user's wallet"})
+
+		default:
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to fetch wallet"})
+		}
+	}
+
+	return c.JSON(http.StatusOK, wallet)
+} 
 
 func (h *WalletHandler) GetBalance(c echo.Context) error {
 	walletIDStr := c.Param("id")
@@ -184,4 +244,38 @@ func (h *WalletHandler) Withdraw(c echo.Context) error {
 		"balance":   updatedWallet.Balance,
 		"currency":  updatedWallet.Currency,
 	})
+}
+
+
+func (h *WalletHandler) Transfer(c echo.Context) error {
+	userID, ok := c.Request().Context().Value("userID").(int)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	fromWalletID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid wallet id"})
+	}
+
+	var req TransferRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
+	}
+
+	if req.Amount.LessThanOrEqual(decimal.Zero) {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "amount must be greater than zero"})
+	}
+
+	if fromWalletID == req.ToWalletID {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "cannot transfer to the same wallet"})
+	}
+
+	ctx := c.Request().Context()
+	err = h.walletService.Transfer(ctx, userID, fromWalletID, req.ToWalletID, req.Amount, req.Description)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"message": "transfer successful"})
 }

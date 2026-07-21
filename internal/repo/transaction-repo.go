@@ -20,13 +20,37 @@ func NewTransactionRepository(db *postgres.DB) *TransactionRepository {
 }
 
 
-func (r *TransactionRepository) GetTransactions(ctx context.Context, walletID int) ([]*model.Transaction, error) {
+func (r *TransactionRepository) GetTransactions(ctx context.Context, walletID int, filter model.TransactionFilter) ([]*model.Transaction, error) {
 	query := `
         SELECT id, wallet_id, type, amount, status, description, created_at
         FROM transactions 
         WHERE wallet_id = $1
     `
-    rows, err := r.db.Query(ctx, query, walletID)
+	args := []interface{}{walletID}
+	counter := 2
+
+	if filter.Type != "" {
+		query += fmt.Sprintf(" AND type = $%d", counter)
+		args = append(args, filter.Type)
+		counter++
+	}
+
+	if filter.Status != "" {
+		query += fmt.Sprintf(" AND status = $%d", counter)
+		args = append(args, filter.Status)
+		counter++
+	}
+
+	switch filter.Sort {
+	case "created_at_asc":
+		query += " ORDER BY created_at ASC"
+	case "created_at_desc":
+		query += " ORDER BY created_at DESC"
+	default:
+		query += " ORDER BY created_at DESC"
+	}
+    
+    rows, err := r.db.Query(ctx, query, args...)
     if err != nil {
         return nil, fmt.Errorf("failed to query wallet's transactions: %w", err)
     }

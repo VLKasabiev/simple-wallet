@@ -68,3 +68,14 @@ func (db *DB) Query(ctx context.Context, query string, args ...any) (pgx.Rows, e
 func (db *DB) QueryRow(ctx context.Context, query string, args ...any) pgx.Row {
 	return db.pool.QueryRow(ctx, query, args...)
 }
+
+func (db *DB) Begin(ctx context.Context) (pgx.Tx, error) {
+    return db.pool.Begin(ctx)
+}
+
+func (db *DB) Ping(ctx context.Context) error {
+    if db == nil || db.pool == nil {
+        return errors.New("database connection is not initialized")
+    }
+    return db.pool.Ping(ctx)
+}

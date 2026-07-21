@@ -26,3 +26,9 @@ type Transaction struct {
 	Description string            `json:"description,omitempty" db:"description"`
 	CreatedAt   time.Time         `json:"created_at" db:"created_at"`
 }
+
+type TransactionFilter struct {
+	Type   string `query:"type"`
+	Status string `query:"status"`
+	Sort   string `query:"sort"`
+}

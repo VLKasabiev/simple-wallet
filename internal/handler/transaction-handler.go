@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/VLKasabiev/simple-wallet/internal/model"
 	"github.com/VLKasabiev/simple-wallet/internal/service"
 	"github.com/labstack/echo/v4"
 )
@@ -30,7 +31,13 @@ func (h *TransactionHandler) GetTransactions(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid wallet id"})
     }
 
-	transactions, err := h.transactionService.GetTransactions(c.Request().Context(), userID, walletID)
+	var filter model.TransactionFilter
+
+	if err := c.Bind(&filter); err != nil {
+        return c.JSON(http.StatusBadRequest, err.Error())
+    }
+
+	transactions, err := h.transactionService.GetTransactions(c.Request().Context(), userID, walletID, filter)
 	if err != nil {
         return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
     }

@@ -7,8 +7,10 @@ import (
 )
 
 
-func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, transactionH *TransactionHandler, jwtCfg *config.JWTConfig) {
+func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, transactionH *TransactionHandler, healthH *HealthHandler, jwtCfg *config.JWTConfig) {
     api := e.Group("")
+
+    api.GET("/health", healthH.CheckHealth)
 
     api.POST("/users", userH.Create)
     api.GET("/users", userH.List)
@@ -21,10 +23,11 @@ func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, tr
     // PROTECTED ENDPOINTS (Wallets + Transactions)
     protected.POST("/users/:id/wallets", walletH.Create)
     protected.GET("/users/:id/wallets", walletH.GetUserWallets)
+    protected.GET("/wallets/:id", walletH.GetByID)
     protected.GET("/wallets/:id/balance", walletH.GetBalance)
     protected.POST("/wallets/:id/deposit", walletH.Deposit)
     protected.POST("/wallets/:id/withdraw", walletH.Withdraw)
-    //protected.POST("/wallets/:id/transfer", walletH.Transfer)
+    protected.POST("/wallets/:id/transfer", walletH.Transfer)
     protected.GET("/wallets/:id/transactions", transactionH.GetTransactions)
     
 }

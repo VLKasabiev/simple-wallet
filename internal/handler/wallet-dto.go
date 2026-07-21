@@ -1,10 +1,12 @@
 package handler
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/VLKasabiev/simple-wallet/internal/model"
+	"github.com/shopspring/decimal"
+)	
 
 type CreateWalletRequest struct {
-	UserID   int    `json:"user_id"`
-	Currency string `json:"currency"`
+	Currency model.Currency `json:"currency"`
 }
 
 type UpdateBalanceRequest struct {
