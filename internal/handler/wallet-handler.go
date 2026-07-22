@@ -8,6 +8,7 @@ import (
 
 	"github.com/VLKasabiev/simple-wallet/internal/model"
 	"github.com/VLKasabiev/simple-wallet/internal/service"
+	"github.com/VLKasabiev/simple-wallet/internal/utils/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/shopspring/decimal"
 )
@@ -46,6 +47,12 @@ func (h *WalletHandler) Create(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid request body"})
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
+	}
+
 	if !req.Currency.IsValid() {
         return c.JSON(http.StatusBadRequest, echo.Map{
             "error": "unsupported currency, allowed values: RUB, USD, EUR",
@@ -62,10 +69,10 @@ func (h *WalletHandler) Create(c echo.Context) error {
 }
 
 func (h *WalletHandler) GetUserWallets(c echo.Context) error {
-	userID, ok := c.Request().Context().Value("userID").(int)
-	if !ok {
-		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
-	}
+	userID, err := strconv.Atoi(c.Param("id"))
+    if err != nil || userID <= 0 {
+        return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid user id"})
+    }
 
 	ctx := c.Request().Context()
 	currentUserID, ok := ctx.Value("userID").(int)
@@ -74,7 +81,7 @@ func (h *WalletHandler) GetUserWallets(c echo.Context) error {
 	}
 
 	if userID != currentUserID {
-		return c.JSON(http.StatusForbidden, echo.Map{"error": "you can not get other user's wallets"})
+		return c.JSON(http.StatusForbidden, echo.Map{"error": "you can't whatch another user's wallets"})
 	}
 
 	wallets, err := h.walletService.GetWalletsByUserID(c.Request().Context(), userID)
@@ -167,6 +174,12 @@ func (h *WalletHandler) Deposit(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
+	}
+
 	userID, ok := c.Request().Context().Value("userID").(int)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
@@ -213,8 +226,10 @@ func (h *WalletHandler) Withdraw(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
 	}
 
-	if req.Amount.LessThanOrEqual(decimal.Zero) {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "amount must be greater than zero"})
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
 	}
 
 	userID, ok := c.Request().Context().Value("userID").(int)
@@ -261,6 +276,12 @@ func (h *WalletHandler) Transfer(c echo.Context) error {
 	var req TransferRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
 	}
 
 	if req.Amount.LessThanOrEqual(decimal.Zero) {

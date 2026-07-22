@@ -14,13 +14,12 @@ func RegisterRoutes(e *echo.Echo, userH *UserHandler, walletH *WalletHandler, tr
 
     api.POST("/users", userH.Create)
     api.GET("/users", userH.List)
-    api.GET("/users/:id", userH.GetByID)
     api.POST("/users/login", userH.Login)
 
     protected := e.Group("")
     protected.Use(middleware.AuthMiddleware(jwtCfg.SecretKey))
 
-    // PROTECTED ENDPOINTS (Wallets + Transactions)
+    protected.GET("/users/:id", userH.GetByID)
     protected.POST("/users/:id/wallets", walletH.Create)
     protected.GET("/users/:id/wallets", walletH.GetUserWallets)
     protected.GET("/wallets/:id", walletH.GetByID)

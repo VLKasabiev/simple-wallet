@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/VLKasabiev/simple-wallet/internal/model"
+	"github.com/VLKasabiev/simple-wallet/internal/utils"
 	"github.com/shopspring/decimal"
 )
 
@@ -16,7 +16,7 @@ type WalletRepository interface {
 	GetWalletByID(ctx context.Context, wallerID int) (*model.Wallet, error)
 	Deposit(ctx context.Context, walletID int, amount decimal.Decimal) (*model.Wallet, error)
 	Withdraw(ctx context.Context, walletID int, amount decimal.Decimal) (*model.Wallet, error)
-	Transfer(ctx context.Context, fromWalletID, toWalletID int, amount decimal.Decimal, desc string) error
+	Transfer(ctx context.Context, fromWalletID, toWalletID int, amount, targetAmount decimal.Decimal, desc string) error
 }
 
 type WalletService struct {
@@ -129,7 +129,17 @@ func (s *WalletService) Transfer(ctx context.Context, userID, fromWalletID, toWa
 		return model.ErrNotWalletOwner
 	}
 
-	err = s.repo.Transfer(ctx, fromWalletID, toWalletID, amount, desc)
+	toWallet, err := s.repo.GetWalletByID(ctx, toWalletID)
+	if err != nil {
+		return fmt.Errorf("failed to get recipient wallet: %w", err)
+	}
+
+	targetAmount, err := utils.Convert(amount, fromWallet.Currency, toWallet.Currency)
+	if err != nil {
+		return fmt.Errorf("currency conversion error: %w", err)
+	}
+
+	err = s.repo.Transfer(ctx, fromWalletID, toWalletID, amount, targetAmount, desc)
     if err != nil {
         return err 
     }

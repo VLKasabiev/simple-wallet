@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
 	"github.com/VLKasabiev/simple-wallet/internal/model"
 	"github.com/VLKasabiev/simple-wallet/internal/service"
+	"github.com/VLKasabiev/simple-wallet/internal/utils/validator"
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,6 +26,12 @@ func (h *UserHandler) Login(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
 	}
 
 	slog.Info("Login attempt", "email", req.Email)
@@ -50,8 +58,21 @@ func (h *UserHandler) Create(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid request body"})
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"errors": validator.FormatError(err),
+		})
+	}
+
 	user, err := h.userService.CreateUser(c.Request().Context(), req.Name, req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, model.ErrEmailAlreadyExists) {
+			return c.JSON(http.StatusConflict, echo.Map{
+				"errors": echo.Map{
+					"email": "User with such email already exist",
+				},
+			})
+		}
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
@@ -68,15 +89,22 @@ func (h *UserHandler) List(c echo.Context) error {
 }
 
 func (h *UserHandler) GetByID(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0{
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid user id"})
 	}
 
-	user, err := h.userService.GetUserByID(c.Request().Context(), id)
+	userID, ok := c.Request().Context().Value("userID").(int)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+	user, err := h.userService.GetUserByID(c.Request().Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, model.ErrUserNotFound) {
 			return c.JSON(http.StatusNotFound, echo.Map{"error": "user not found"})
+		}
+		if errors.Is(err, model.ErrNotUserProfileOwner) {
+			return c.JSON(http.StatusForbidden, echo.Map{"error": "You can't watch another user profile"})
 		}
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}

@@ -176,6 +176,14 @@ func (r *WalletRepository) Withdraw(ctx context.Context, walletID int, amount de
 	}
 
 	if wallet.Balance.LessThan(amount) {
+		_ = tx.Rollback(ctx)
+
+		failQuery := `
+			INSERT INTO transactions (wallet_id, type, amount, status, description, created_at)
+			VALUES ($1, 'withdraw', $2, 'failed', 'Insufficient funds', NOW())`
+		
+		_, _ = r.db.Exec(ctx, failQuery, walletID, amount)
+
 		return nil, model.ErrInsufficientBalance
 	}
 
@@ -203,7 +211,7 @@ func (r *WalletRepository) Withdraw(ctx context.Context, walletID int, amount de
 }
 
 
-func (r *WalletRepository) Transfer(ctx context.Context, fromWalletID, toWalletID int, amount decimal.Decimal, desc string) error {
+func (r *WalletRepository) Transfer(ctx context.Context, fromWalletID, toWalletID int, amount, targetAmount decimal.Decimal, desc string) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to start transaction: %w", err)
@@ -241,11 +249,20 @@ func (r *WalletRepository) Transfer(ctx context.Context, fromWalletID, toWalletI
 	}
 
 	if cmdTag.RowsAffected() == 0 {
+		_ = tx.Rollback(ctx)
+
+		failQuery := `
+        INSERT INTO transactions (wallet_id, type, amount, status, description, created_at)
+        VALUES ($1, 'transfer_out', $2, 'failed', $3, NOW())`
+    
+		failDesc := fmt.Sprintf("Transfer to #%d failed: Insufficient funds", toWalletID)
+		_, _ = r.db.Exec(ctx, failQuery, fromWalletID, amount, failDesc)
+
 		return model.ErrInsufficientBalance
 	}
 
 	depositQuery := `UPDATE wallets SET balance = balance + $1 WHERE id = $2`
-	_, err = tx.Exec(ctx, depositQuery, amount, toWalletID)
+	_, err = tx.Exec(ctx, depositQuery, targetAmount, toWalletID)
 	if err != nil {
 		return fmt.Errorf("failed to deposit funds: %w", err)
 	}
@@ -258,7 +275,7 @@ func (r *WalletRepository) Transfer(ctx context.Context, fromWalletID, toWalletI
 		return fmt.Errorf("failed to log transfer_out: %w", err)
 	}
 
-	_, err = tx.Exec(ctx, transactionQuery, toWalletID, amount, fmt.Sprintf("Перевод от кошелька #%d: %s", fromWalletID, desc))
+	_, err = tx.Exec(ctx, transactionQuery, toWalletID, targetAmount, fmt.Sprintf("Перевод от кошелька #%d: %s", fromWalletID, desc))
 	if err != nil {
 		return fmt.Errorf("failed to log transfer_in: %w", err)
 	}

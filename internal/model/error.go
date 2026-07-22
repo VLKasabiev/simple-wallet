@@ -3,20 +3,19 @@ package model
 
 import (
     "errors"
-    //"github.com/go-playground/validator/v10"
 ) 
 
 
 var (
-	// 404
 	ErrUserNotFound = errors.New("User not found")
 	ErrInvalidPassword = errors.New("Invalid password")
 
-
+	ErrEmailAlreadyExists = errors.New("email already exists")
 
 	ErrWalletNotFound = errors.New("Wallet not found")
 	ErrNotWalletOwner = errors.New("you do not own this wallet")
-	// ErrTransNotFound = errors.New("Transaction not found")
+
+	ErrNotUserProfileOwner    = errors.New("you are not the owner of this profile")
 
 	ErrInsufficientBalance = errors.New("insufficient balance")
 )

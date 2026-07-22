@@ -59,7 +59,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	return user, nil
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id int) (*model.User, error) {
 	query := `SELECT id, name, email, created_at, updated_at FROM users WHERE id = $1`
 
 	user := &model.User{}

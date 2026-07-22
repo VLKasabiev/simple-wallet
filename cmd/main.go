@@ -10,6 +10,7 @@ import (
 	"github.com/VLKasabiev/simple-wallet/internal/service"
 	"github.com/VLKasabiev/simple-wallet/pkg/postgres"
 	"github.com/VLKasabiev/simple-wallet/internal/repo"
+	myValidator "github.com/VLKasabiev/simple-wallet/internal/utils/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -53,6 +54,8 @@ func main() {
 	healthHandler := handler.NewHealthHandler(db.Ping)
 
 	e := echo.New()
+
+	e.Validator = myValidator.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())

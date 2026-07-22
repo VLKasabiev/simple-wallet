@@ -6,15 +6,15 @@ import (
 )	
 
 type CreateWalletRequest struct {
-	Currency model.Currency `json:"currency"`
+	Currency model.Currency `json:"currency" validate:"required,oneof=RUB USD EUR"`
 }
 
 type UpdateBalanceRequest struct {
-	Amount decimal.Decimal `json:"amount"`
+	Amount decimal.Decimal `json:"amount" validate:"required,decimal_gt_zero"`
 }
 
 type TransferRequest struct {
-	ToWalletID  int             `json:"to_wallet_id"`
-	Amount      decimal.Decimal `json:"amount"`
-	Description string          `json:"description"`
+	ToWalletID int `json:"to_wallet_id" validate:"required,gt=0"`
+	Amount decimal.Decimal `json:"amount" validate:"required,decimal_gt_zero"`
+	Description string `json:"description" validate:"max=255"`
 }

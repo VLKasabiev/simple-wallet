@@ -28,7 +28,7 @@ type Transaction struct {
 }
 
 type TransactionFilter struct {
-	Type   string `query:"type"`
-	Status string `query:"status"`
-	Sort   string `query:"sort"`
+	Type   string `query:"type" validate:"omitempty,oneof=deposit withdraw transfer_in transfer_out"`
+	Status string `query:"status" validate:"omitempty,oneof=success failed"`
+	Sort   string `query:"sort" validate:"omitempty,oneof=created_at_desc created_at_asc"`
 }

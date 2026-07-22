@@ -2,16 +2,16 @@ package service
 
 import (
 	"context"
-	"errors"
-	"strings"
-	"github.com/VLKasabiev/simple-wallet/internal/utils"
-	"github.com/VLKasabiev/simple-wallet/internal/model"
+	"log/slog"
+
 	"github.com/VLKasabiev/simple-wallet/internal/config"
+	"github.com/VLKasabiev/simple-wallet/internal/model"
+	"github.com/VLKasabiev/simple-wallet/internal/utils"
 )
 
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
-	GetByID(ctx context.Context, id int64) (*model.User, error)
+	GetByID(ctx context.Context, id int) (*model.User, error)
 	List(ctx context.Context) ([]model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 }
@@ -53,15 +53,15 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 }
 
 func (s *UserService) CreateUser(ctx context.Context, name, email, password string) (*model.User, error) {
-	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("user name cannot be empty")
-	}
-	if !strings.Contains(email, "@") {
-		return nil, errors.New("invalid email address")
+	existingUser, err := s.repo.GetByEmail(ctx, email)
+	if err == nil && existingUser != nil {
+		slog.Warn("user registration failed: email already taken", "email", email)
+		return nil, model.ErrEmailAlreadyExists
 	}
 
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
+		slog.Error("failed to hash password", "error", err)
 		return nil, err
 	}
 
@@ -72,17 +72,18 @@ func (s *UserService) CreateUser(ctx context.Context, name, email, password stri
 	}
 
 	if err := s.repo.Create(ctx, user); err != nil {
+		slog.Error("failed to create user", "error", err)
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func (s *UserService) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
-	if id <= 0 {
-		return nil, errors.New("invalid user id")
-	}
-	return s.repo.GetByID(ctx, id)
+func (s *UserService) GetUserByID(ctx context.Context, IdFromParam, IdFromToken int) (*model.User, error) {
+	if IdFromParam != IdFromToken {
+        return nil, model.ErrNotUserProfileOwner
+    }
+	return s.repo.GetByID(ctx, IdFromParam)
 }
 
 func (s *UserService) ListUsers(ctx context.Context) ([]model.User, error) {

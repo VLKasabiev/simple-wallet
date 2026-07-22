@@ -38,26 +38,9 @@ func (s *TransactionService) GetTransactions(ctx context.Context, userID, wallet
         return nil, model.ErrNotWalletOwner
     }
 
-
-	if filter.Type != "" {
-        if filter.Type != "withdraw" && filter.Type != "deposit" {
-            return nil, fmt.Errorf("invalid transaction type: %s", filter.Type)
-        }
-    }
-
-    if filter.Status != "" {
-        if filter.Status != "success" && filter.Status != "failed" {
-            return nil, fmt.Errorf("invalid transaction status: %s", filter.Status)
-        }
-    }
-
     if filter.Sort == "" {
         filter.Sort = "created_at_desc" 
-    } else {
-        if filter.Sort != "created_at_desc" && filter.Sort != "created_at_asc" {
-            return nil, fmt.Errorf("invalid sort parameter: %s", filter.Sort)
-        }
-    }
+    } 
 
     transactions, err := s.repo.GetTransactions(ctx, walletID, filter)
     if err != nil {

@@ -22,7 +22,7 @@ func NewTransactionRepository(db *postgres.DB) *TransactionRepository {
 
 func (r *TransactionRepository) GetTransactions(ctx context.Context, walletID int, filter model.TransactionFilter) ([]*model.Transaction, error) {
 	query := `
-        SELECT id, wallet_id, type, amount, status, description, created_at
+        SELECT id, wallet_id, type, amount, status, COALESCE(description, ''), created_at
         FROM transactions 
         WHERE wallet_id = $1
     `

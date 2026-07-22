@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+
 	"github.com/VLKasabiev/simple-wallet/pkg/postgres"
 	"github.com/spf13/viper"
 )
@@ -28,6 +30,10 @@ func NewConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
+
+    viper.AutomaticEnv()
+
+    viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("error reading config file: %w", err)
