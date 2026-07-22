@@ -209,7 +209,7 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-### 10. Пополнение кошелька (`POST /wallets/1/deposit`)
+### 10. Пополнение кошелька (`POST /wallets/:id/deposit`)
 ```http
 POST /wallets/1/deposit
 Authorization: Bearer <your_jwt_token>
@@ -222,7 +222,7 @@ Content-Type: application/json
 
 ---
 
-### 11. Списание средств (`POST /wallets/1/withdraw`)
+### 11. Списание средств (`POST /wallets/:id/withdraw`)
 ```http
 POST /wallets/1/withdraw
 Authorization: Bearer <your_jwt_token>
@@ -235,7 +235,7 @@ Content-Type: application/json
 
 ---
 
-### 12. Перевод между кошельками (`POST /wallets/1/transfer`)
+### 12. Перевод между кошельками (`POST /wallets/:id/transfer`)
 ```http
 POST /wallets/1/transfer
 Authorization: Bearer <your_jwt_token>
